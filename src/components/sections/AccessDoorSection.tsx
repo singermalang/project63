@@ -1,0 +1,131 @@
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, Grid, Typography, Box, Divider, Skeleton } from '@mui/material';
+import { DoorOpen, UserCheck, UserX } from 'lucide-react';
+import { format } from 'date-fns';
+
+interface AccessLog {
+  log_id: number;
+  user_id: string;
+  door_id: string;
+  access_time: string;
+  access_granted: boolean;
+  card_uid: string;
+}
+
+const AccessDoorSection = () => {
+  const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAccessLogs = async () => {
+      try {
+        const response = await fetch('http://10.10.11.27/api/access-logs');
+        const data = await response.json();
+        setAccessLogs(data);
+      } catch (error) {
+        console.error('Error fetching access logs:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAccessLogs();
+    const interval = setInterval(fetchAccessLogs, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (timeString: string) => {
+    try {
+      return format(new Date(timeString), 'dd MMM yyyy HH:mm:ss');
+    } catch (error) {
+      return timeString;
+    }
+  };
+
+  return (
+    <Card 
+      sx={{ 
+        backgroundImage: 'linear-gradient(to bottom right, rgba(30, 30, 60, 0.4), rgba(30, 30, 60, 0.1))',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+      }}
+      className="card"
+    >
+      <CardHeader 
+        title={
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <DoorOpen size={24} color="#3f88f2" />
+            <Typography variant="h5" sx={{ ml: 1, fontWeight: 600 }}>
+              Access Door Logs
+            </Typography>
+          </Box>
+        } 
+        sx={{ pb: 1 }}
+      />
+      <Divider sx={{ opacity: 0.1 }} />
+      <CardContent>
+        {loading ? (
+          <Grid container spacing={2}>
+            {[1, 2, 3].map((i) => (
+              <Grid item xs={12} key={i}>
+                <Skeleton variant="rectangular" height={80} />
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Grid container spacing={2}>
+            {accessLogs.map((log) => (
+              <Grid item xs={12} key={log.log_id}>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: 'rgba(26, 26, 46, 0.4)',
+                    border: '1px solid',
+                    borderColor: log.access_granted ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 82, 82, 0.3)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 2,
+                  }}
+                >
+                  {log.access_granted ? (
+                    <UserCheck size={24} color="#4caf50" />
+                  ) : (
+                    <UserX size={24} color="#ff5252" />
+                  )}
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                      User ID: {log.user_id}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Door: {log.door_id} • Card: {log.card_uid}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {formatTime(log.access_time)}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      px: 2,
+                      py: 0.5,
+                      borderRadius: 1,
+                      bgcolor: log.access_granted ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
+                      color: log.access_granted ? 'success.main' : 'error.main',
+                    }}
+                  >
+                    <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                      {log.access_granted ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Grid>
+            ))}
+          </Grid>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default AccessDoorSection;
