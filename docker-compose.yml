@@ -10,7 +10,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - VITE_SOCKET_SERVER=http://noc-monitoring-backend:3000
+      - VITE_SOCKET_SERVER=http://localhost:3000
 
   noc-monitoring-backend:
     build:
