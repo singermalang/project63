@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, Grid, Typography, Box, Divider, Skeleton } from '@mui/material';
 import { DoorOpen, UserCheck, UserX } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { useSocket } from '../../contexts/SocketContext';
 
 interface AccessLog {
@@ -57,7 +57,8 @@ const AccessDoorSection = () => {
 
   const formatTime = (timeString: string) => {
     try {
-      return format(new Date(timeString), 'dd MMM yyyy HH:mm:ss');
+      const date = parseISO(timeString);
+      return format(date, 'dd MMM yyyy HH:mm:ss');
     } catch (error) {
       return timeString;
     }

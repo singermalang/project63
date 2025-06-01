@@ -69,10 +69,25 @@ const createPoolWithRetry = async (retries = 5, delay = 5000) => {
   throw new Error('Failed to connect to database after multiple attempts');
 };
 
+// Create a separate pool for access logs
+const createAccessLogsPool = async () => {
+  return createPool({
+    host: '10.10.11.27',
+    user: 'root',
+    password: 'bismillah123',
+    database: 'rfid_access_control',
+    timezone: '+07:00', // Set timezone to WIB (UTC+7)
+    dateStrings: true // Return dates as strings in local format
+  });
+};
+
 let pool;
-createPoolWithRetry()
-  .then(p => {
-    pool = p;
+let accessLogsPool;
+
+Promise.all([createPoolWithRetry(), createAccessLogsPool()])
+  .then(([mainPool, logsPool]) => {
+    pool = mainPool;
+    accessLogsPool = logsPool;
   })
   .catch(error => {
     console.error('Fatal database connection error:', error);
@@ -105,10 +120,10 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Modified Access logs endpoint to return only necessary fields
+// Access logs endpoint
 app.get('/api/access-logs', async (req, res) => {
   try {
-    const [rows] = await pool.query(
+    const [rows] = await accessLogsPool.query(
       'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
     );
     res.json(rows);
@@ -161,8 +176,8 @@ async function fetchAndEmitData() {
       io.emit('fire_smoke_data', fireSmokeData[0]);
     }
 
-    // Fetch access logs
-    const [accessLogs] = await pool.query(
+    // Fetch access logs from rfid_access_control database
+    const [accessLogs] = await accessLogsPool.query(
       'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
     );
     if (accessLogs.length > 0) {
