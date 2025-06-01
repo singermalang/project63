@@ -105,11 +105,11 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Access logs endpoint
+// Modified Access logs endpoint to return only necessary fields
 app.get('/api/access-logs', async (req, res) => {
   try {
     const [rows] = await pool.query(
-      'SELECT * FROM access_logs ORDER BY access_time DESC LIMIT 5'
+      'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
     );
     res.json(rows);
   } catch (error) {
@@ -163,7 +163,7 @@ async function fetchAndEmitData() {
 
     // Fetch access logs
     const [accessLogs] = await pool.query(
-      'SELECT * FROM access_logs ORDER BY access_time DESC LIMIT 5'
+      'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
     );
     if (accessLogs.length > 0) {
       io.emit('access_logs', accessLogs);

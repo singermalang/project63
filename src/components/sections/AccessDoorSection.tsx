@@ -5,19 +5,16 @@ import { format } from 'date-fns';
 import { useSocket } from '../../contexts/SocketContext';
 
 interface AccessLog {
-  log_id: number;
   user_id: string;
-  door_id: string;
   access_time: string;
   access_granted: boolean;
-  card_uid: string;
 }
 
 const AccessDoorSection = () => {
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { connected } = useSocket();
+  const { socket, connected } = useSocket();
 
   useEffect(() => {
     const fetchAccessLogs = async () => {
@@ -32,20 +29,31 @@ const AccessDoorSection = () => {
         
         const data = await response.json();
         setAccessLogs(data);
+        setLoading(false);
       } catch (error) {
         console.error('Error fetching access logs:', error);
-        setError('Failed to fetch access logs. Please try again later.');
-      } finally {
+        setError('Failed to fetch access logs');
         setLoading(false);
       }
     };
 
     if (connected) {
       fetchAccessLogs();
+      
+      // Listen for real-time updates
+      socket.on('access_logs', (newLogs) => {
+        setAccessLogs(newLogs);
+      });
+
+      // Fetch every 30 seconds as backup
       const interval = setInterval(fetchAccessLogs, 30000);
-      return () => clearInterval(interval);
+
+      return () => {
+        socket.off('access_logs');
+        clearInterval(interval);
+      };
     }
-  }, [connected]);
+  }, [connected, socket]);
 
   const formatTime = (timeString: string) => {
     try {
@@ -105,8 +113,8 @@ const AccessDoorSection = () => {
           </Grid>
         ) : (
           <Grid container spacing={2}>
-            {accessLogs.map((log) => (
-              <Grid item xs={12} key={log.log_id}>
+            {accessLogs.map((log, index) => (
+              <Grid item xs={12} key={index}>
                 <Box
                   sx={{
                     p: 2,
@@ -127,9 +135,6 @@ const AccessDoorSection = () => {
                   <Box sx={{ flexGrow: 1 }}>
                     <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
                       User ID: {log.user_id}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Door: {log.door_id} • Card: {log.card_uid}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
                       {formatTime(log.access_time)}
