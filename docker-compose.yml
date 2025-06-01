@@ -10,7 +10,7 @@ services:
     restart: always
     environment:
       - NODE_ENV=production
-      - VITE_SOCKET_SERVER=http://localhost:3000
+      - VITE_SOCKET_SERVER=http://noc-monitoring-backend:3000
     networks:
       - noc-network
 
@@ -28,7 +28,7 @@ services:
       - MYSQL_PASSWORD=bismillah123
       - MYSQL_DATABASE=suhu
       - PORT=3000
-      - CORS_ORIGIN=http://localhost:8181
+      - CORS_ORIGIN=http://noc-monitoring-frontend:80
     networks:
       - noc-network
 
