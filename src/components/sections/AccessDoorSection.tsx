@@ -19,7 +19,7 @@ const AccessDoorSection = () => {
   useEffect(() => {
     const fetchAccessLogs = async () => {
       try {
-        const response = await fetch('http://10.10.11.27/api/access-logs');
+        const response = await fetch(`${import.meta.env.VITE_SOCKET_SERVER}/api/access-logs`);
         const data = await response.json();
         setAccessLogs(data);
       } catch (error) {

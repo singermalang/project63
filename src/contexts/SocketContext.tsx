@@ -25,7 +25,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    const socketUrl = 'http://10.10.11.27:3000';
+    const socketUrl = import.meta.env.VITE_SOCKET_SERVER;
     
     const socketInstance = io(socketUrl, {
       reconnectionAttempts: Infinity,
