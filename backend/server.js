@@ -11,9 +11,12 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
+// Configure CORS with environment variable
+const corsOrigin = process.env.CORS_ORIGIN || '*';
+
 // Configure CORS
 app.use(cors({
-  origin: '*',
+  origin: corsOrigin,
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -21,15 +24,18 @@ app.use(cors({
 // Configure Socket.IO with CORS
 const io = new Server(server, {
   cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
+    origin: corsOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true
   },
-  transports: ['polling', 'websocket']
+  transports: ['websocket', 'polling'],
+  pingTimeout: 60000,
+  pingInterval: 25000
 });
 
 // Create MySQL connection pool
 const pool = createPool({
-  host: '10.10.11.27',
+  host: process.env.MYSQL_HOST || '10.10.11.27',
   user: process.env.MYSQL_USER || 'root',
   password: process.env.MYSQL_PASSWORD || 'bismillah123',
   database: process.env.MYSQL_DATABASE || 'suhu',
@@ -127,9 +133,6 @@ async function fetchAndEmitData() {
     if (accessLogs.length > 0) {
       io.emit('access_logs', accessLogs);
     }
-
-    // Fetch historical data
-    await fetchAndEmitHistoricalData();
 
   } catch (error) {
     console.error('Error fetching or emitting data:', error);

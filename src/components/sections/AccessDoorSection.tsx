@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, Grid, Typography, Box, Divider, Skeleton } from '@mui/material';
 import { DoorOpen, UserCheck, UserX } from 'lucide-react';
 import { format } from 'date-fns';
+import { useSocket } from '../../contexts/SocketContext';
 
 interface AccessLog {
   log_id: number;
@@ -15,25 +16,36 @@ interface AccessLog {
 const AccessDoorSection = () => {
   const [accessLogs, setAccessLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { connected } = useSocket();
 
   useEffect(() => {
     const fetchAccessLogs = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_SOCKET_SERVER}/api/access-logs`);
+        setError(null);
+        const baseUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://localhost:3000';
+        const response = await fetch(`${baseUrl}/api/access-logs`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         setAccessLogs(data);
       } catch (error) {
         console.error('Error fetching access logs:', error);
+        setError('Failed to fetch access logs. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchAccessLogs();
-    const interval = setInterval(fetchAccessLogs, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
+    if (connected) {
+      fetchAccessLogs();
+      const interval = setInterval(fetchAccessLogs, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [connected]);
 
   const formatTime = (timeString: string) => {
     try {
@@ -42,6 +54,24 @@ const AccessDoorSection = () => {
       return timeString;
     }
   };
+
+  if (error) {
+    return (
+      <Card 
+        sx={{ 
+          backgroundImage: 'linear-gradient(to bottom right, rgba(30, 30, 60, 0.4), rgba(30, 30, 60, 0.1))',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 82, 82, 0.3)',
+        }}
+      >
+        <CardContent>
+          <Typography color="error" align="center">
+            {error}
+          </Typography>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card 

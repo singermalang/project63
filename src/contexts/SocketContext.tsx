@@ -23,24 +23,25 @@ interface SocketProviderProps {
 export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_SOCKET_SERVER;
+    const socketUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://localhost:3000';
     
     const socketInstance = io(socketUrl, {
-      reconnectionAttempts: Infinity,
+      reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
       autoConnect: true,
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       forceNew: true,
-      path: '/socket.io',
     });
 
     socketInstance.on('connect', () => {
-      console.log('Socket connected to:', socketUrl);
+      console.log('Socket connected successfully');
       setConnected(true);
+      setRetryCount(0);
     });
 
     socketInstance.on('disconnect', (reason) => {
@@ -50,17 +51,12 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
 
     socketInstance.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
-      // Ensure we're using polling as primary transport
-      if (socketInstance.io.opts.transports[0] !== 'polling') {
+      setRetryCount((prev) => prev + 1);
+      
+      if (retryCount >= 3) {
+        // Fall back to polling after 3 failed websocket attempts
         socketInstance.io.opts.transports = ['polling', 'websocket'];
       }
-    });
-
-    socketInstance.io.on('error', (error) => {
-      console.error('Transport error:', error);
-      // Attempt reconnection with polling
-      socketInstance.io.opts.transports = ['polling', 'websocket'];
-      socketInstance.connect();
     });
 
     setSocket(socketInstance);
@@ -68,7 +64,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, []);
+  }, [retryCount]);
 
   return (
     <SocketContext.Provider value={{ socket, connected }}>
