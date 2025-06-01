@@ -6,11 +6,11 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8181:80"
+      - "80:80"
     restart: always
     environment:
       - NODE_ENV=production
-      - VITE_SOCKET_SERVER=http://noc-monitoring-backend:3000
+      - VITE_SOCKET_SERVER=http://10.10.1.25:3000
     networks:
       - noc-network
 
@@ -28,7 +28,7 @@ services:
       - MYSQL_PASSWORD=bismillah123
       - MYSQL_DATABASE=suhu
       - PORT=3000
-      - CORS_ORIGIN=*
+      - CORS_ORIGIN=http://10.10.1.25
     networks:
       - noc-network
 

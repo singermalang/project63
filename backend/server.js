@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Configure CORS with environment variable
-const corsOrigin = process.env.CORS_ORIGIN || '*';
+const corsOrigin = process.env.CORS_ORIGIN || 'http://10.10.1.25';
 
 // Configure CORS
 app.use(cors({
@@ -161,7 +161,7 @@ setInterval(fetchAndEmitData, 5000);
 
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   checkDatabaseConnection();
 });
