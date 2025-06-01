@@ -37,16 +37,47 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e8
 });
 
-// Create MySQL connection pool
-const pool = createPool({
-  host: process.env.MYSQL_HOST || '10.10.11.27',
-  user: process.env.MYSQL_USER || 'root',
-  password: process.env.MYSQL_PASSWORD || 'bismillah123',
-  database: process.env.MYSQL_DATABASE || 'suhu',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+// Create MySQL connection pool with retry mechanism
+const createPoolWithRetry = async (retries = 5, delay = 5000) => {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const pool = createPool({
+        host: process.env.MYSQL_HOST || '10.10.11.27',
+        user: process.env.MYSQL_USER || 'root',
+        password: process.env.MYSQL_PASSWORD || 'bismillah123',
+        database: process.env.MYSQL_DATABASE || 'suhu',
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0,
+        enableKeepAlive: true,
+        keepAliveInitialDelay: 0
+      });
+
+      // Test the connection
+      const connection = await pool.getConnection();
+      connection.release();
+      console.log('Database connection successful');
+      return pool;
+    } catch (error) {
+      console.error(`Database connection attempt ${i + 1} failed:`, error.message);
+      if (i < retries - 1) {
+        console.log(`Retrying in ${delay/1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw new Error('Failed to connect to database after multiple attempts');
+};
+
+let pool;
+createPoolWithRetry()
+  .then(p => {
+    pool = p;
+  })
+  .catch(error => {
+    console.error('Fatal database connection error:', error);
+    process.exit(1);
+  });
 
 // Check database connection
 async function checkDatabaseConnection() {
