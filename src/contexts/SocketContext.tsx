@@ -24,22 +24,27 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
   const [socket, setSocket] = useState<Socket | null>(null);
   const [connected, setConnected] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [transportType, setTransportType] = useState<'websocket' | 'polling'>('websocket');
 
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://localhost:3000';
     
     const socketInstance = io(socketUrl, {
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
       autoConnect: true,
-      transports: ['websocket', 'polling'],
+      transports: [transportType],
       forceNew: true,
+      withCredentials: true,
+      extraHeaders: {
+        'Access-Control-Allow-Credentials': 'true'
+      }
     });
 
     socketInstance.on('connect', () => {
-      console.log('Socket connected successfully');
+      console.log(`Socket connected successfully using ${transportType}`);
       setConnected(true);
       setRetryCount(0);
     });
@@ -47,16 +52,29 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     socketInstance.on('disconnect', (reason) => {
       console.log('Socket disconnected:', reason);
       setConnected(false);
+
+      if (reason === 'transport error' && transportType === 'websocket') {
+        console.log('Falling back to polling transport');
+        setTransportType('polling');
+      }
     });
 
     socketInstance.on('connect_error', (error) => {
       console.error('Socket connection error:', error);
       setRetryCount((prev) => prev + 1);
       
-      if (retryCount >= 3) {
-        // Fall back to polling after 3 failed websocket attempts
-        socketInstance.io.opts.transports = ['polling', 'websocket'];
+      if (retryCount >= 3 && transportType === 'websocket') {
+        console.log('Falling back to polling after multiple websocket failures');
+        setTransportType('polling');
       }
+    });
+
+    socketInstance.io.on('ping', () => {
+      console.log('Ping received');
+    });
+
+    socketInstance.io.on('pong', (latency) => {
+      console.log('Pong received, latency:', latency, 'ms');
     });
 
     setSocket(socketInstance);
@@ -64,7 +82,7 @@ export const SocketProvider = ({ children }: SocketProviderProps) => {
     return () => {
       socketInstance.disconnect();
     };
-  }, [retryCount]);
+  }, [transportType, retryCount]);
 
   return (
     <SocketContext.Provider value={{ socket, connected }}>

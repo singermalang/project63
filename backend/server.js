@@ -18,7 +18,8 @@ const corsOrigin = process.env.CORS_ORIGIN || '*';
 app.use(cors({
   origin: corsOrigin,
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 // Configure Socket.IO with CORS
@@ -26,11 +27,14 @@ const io = new Server(server, {
   cors: {
     origin: corsOrigin,
     methods: ['GET', 'POST'],
-    credentials: true
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,
-  pingInterval: 25000
+  pingInterval: 25000,
+  allowEIO3: true,
+  maxHttpBufferSize: 1e8
 });
 
 // Create MySQL connection pool
@@ -138,6 +142,19 @@ async function fetchAndEmitData() {
     console.error('Error fetching or emitting data:', error);
   }
 }
+
+// Socket.IO connection handling
+io.on('connection', (socket) => {
+  console.log('Client connected');
+  
+  socket.on('disconnect', (reason) => {
+    console.log('Client disconnected:', reason);
+  });
+
+  socket.on('error', (error) => {
+    console.error('Socket error:', error);
+  });
+});
 
 // Start data emission interval
 setInterval(fetchAndEmitData, 5000);

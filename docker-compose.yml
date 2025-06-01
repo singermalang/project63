@@ -11,6 +11,8 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_SOCKET_SERVER=http://localhost:3000
+    networks:
+      - noc-network
 
   noc-monitoring-backend:
     build:
@@ -27,3 +29,9 @@ services:
       - MYSQL_DATABASE=suhu
       - PORT=3000
       - CORS_ORIGIN=http://localhost:8181
+    networks:
+      - noc-network
+
+networks:
+  noc-network:
+    driver: bridge
