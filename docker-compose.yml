@@ -28,7 +28,7 @@ services:
       - MYSQL_PASSWORD=bismillah123
       - MYSQL_DATABASE=suhu
       - PORT=3000
-      - CORS_ORIGIN=http://noc-monitoring-frontend:80
+      - CORS_ORIGIN=https://localhost:5173
     networks:
       - noc-network
 
