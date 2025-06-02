@@ -5,7 +5,8 @@ import { format, parseISO } from 'date-fns';
 import { useSocket } from '../../contexts/SocketContext';
 
 interface AccessLog {
-  user_id: string;
+  username: string;
+  door_name: string;
   access_time: string;
   access_granted: boolean;
 }
@@ -117,53 +118,55 @@ const AccessDoorSection = () => {
       <Divider sx={{ opacity: 0.1 }} />
       <CardContent>
         {loading ? (
-          <Grid container spacing={2}>
+          <Grid container spacing={1}>
             {[1, 2, 3].map((i) => (
               <Grid item xs={12} key={i}>
-                <Skeleton variant="rectangular" height={80} />
+                <Skeleton variant="rectangular" height={60} />
               </Grid>
             ))}
           </Grid>
         ) : (
-          <Grid container spacing={2}>
+          <Grid container spacing={1}>
             {accessLogs.map((log, index) => (
               <Grid item xs={12} key={index}>
                 <Box
                   sx={{
-                    p: 2,
+                    p: 1.5,
                     borderRadius: 2,
                     bgcolor: 'rgba(26, 26, 46, 0.4)',
                     border: '1px solid',
                     borderColor: log.access_granted ? 'rgba(76, 175, 80, 0.3)' : 'rgba(255, 82, 82, 0.3)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 2,
+                    gap: 1.5,
                   }}
                 >
                   {log.access_granted ? (
-                    <UserCheck size={24} color="#4caf50" />
+                    <UserCheck size={20} color="#4caf50" />
                   ) : (
-                    <UserX size={24} color="#ff5252" />
+                    <UserX size={20} color="#ff5252" />
                   )}
-                  <Box sx={{ flexGrow: 1 }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                      User ID: {log.user_id}
+                  <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                    <Typography variant="body1" sx={{ fontWeight: 500 }} noWrap>
+                      {log.username || 'Unknown User'}
                     </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {formatTime(log.access_time)}
+                    <Typography variant="caption" color="text.secondary" display="block" noWrap>
+                      {log.door_name || 'Unknown Door'} • {formatTime(log.access_time)}
                     </Typography>
                   </Box>
                   <Box
                     sx={{
-                      px: 2,
+                      px: 1.5,
                       py: 0.5,
                       borderRadius: 1,
                       bgcolor: log.access_granted ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
                       color: log.access_granted ? 'success.main' : 'error.main',
+                      minWidth: 100,
+                      textAlign: 'center'
                     }}
                   >
                     <Typography variant="caption" sx={{ fontWeight: 500 }}>
-                      {log.access_granted ? 'ACCESS GRANTED' : 'ACCESS DENIED'}
+                      {log.access_granted ? 'GRANTED' : 'DENIED'}
                     </Typography>
                   </Box>
                 </Box>

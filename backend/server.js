@@ -131,9 +131,18 @@ app.get('/api/access-logs', async (req, res) => {
   let retries = 3;
   while (retries > 0) {
     try {
-      const [rows] = await accessLogsPool.query(
-        'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
-      );
+      const [rows] = await accessLogsPool.query(`
+        SELECT 
+          al.access_time,
+          al.access_granted,
+          u.username,
+          d.door_name
+        FROM access_logs al
+        LEFT JOIN users u ON al.user_id = u.user_id
+        LEFT JOIN doors d ON al.door_id = d.door_id
+        ORDER BY al.access_time DESC 
+        LIMIT 5
+      `);
       return res.json(rows);
     } catch (error) {
       console.error(`Error fetching access logs (attempt ${4 - retries}):`, error);
@@ -192,10 +201,19 @@ async function fetchAndEmitData() {
       io.emit('fire_smoke_data', fireSmokeData[0]);
     }
 
-    // Fetch access logs from rfid_access_control database
-    const [accessLogs] = await accessLogsPool.query(
-      'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
-    );
+    // Fetch access logs from rfid_access_control database with user and door info
+    const [accessLogs] = await accessLogsPool.query(`
+      SELECT 
+        al.access_time,
+        al.access_granted,
+        u.username,
+        d.door_name
+      FROM access_logs al
+      LEFT JOIN users u ON al.user_id = u.user_id
+      LEFT JOIN doors d ON al.door_id = d.door_id
+      ORDER BY al.access_time DESC 
+      LIMIT 5
+    `);
     if (accessLogs.length > 0) {
       io.emit('access_logs', accessLogs);
     }
