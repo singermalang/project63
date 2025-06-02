@@ -17,9 +17,10 @@ const corsOrigin = process.env.CORS_ORIGIN || 'http://10.10.1.25';
 // Configure CORS
 app.use(cors({
   origin: corsOrigin,
-  methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 204
 }));
 
 // Configure Socket.IO with CORS
@@ -28,7 +29,7 @@ const io = new Server(server, {
     origin: corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'Cache-Control', 'Accept']
   },
   transports: ['websocket', 'polling'],
   pingTimeout: 60000,

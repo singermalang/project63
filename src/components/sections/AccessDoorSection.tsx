@@ -24,9 +24,9 @@ const AccessDoorSection = () => {
         const baseUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://10.10.1.25:3000';
         const response = await fetch(`${baseUrl}/api/access-logs`, {
           headers: {
-            'Accept': 'application/json',
-            'Cache-Control': 'no-cache'
-          }
+            'Accept': 'application/json'
+          },
+          credentials: 'include'
         });
         
         if (!response.ok) {
