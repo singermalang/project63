@@ -9,13 +9,16 @@ interface ValueDisplayProps {
   icon?: ReactNode;
   subtitle?: string;
   timestamp?: string;
+  showTrend?: boolean; // New prop to control trend visibility
 }
 
-const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueDisplayProps) => {
+const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp, showTrend = false }: ValueDisplayProps) => {
   const [prevValue, setPrevValue] = useState<number>(typeof value === 'number' ? value : 0);
   const [trend, setTrend] = useState<'up' | 'down' | null>(null);
 
   useEffect(() => {
+    if (!showTrend) return;
+    
     const numValue = typeof value === 'number' ? value : parseFloat(value);
     if (numValue !== prevValue) {
       setTrend(numValue > prevValue ? 'up' : 'down');
@@ -25,7 +28,7 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
       const timer = setTimeout(() => setTrend(null), 3000);
       return () => clearTimeout(timer);
     }
-  }, [value, prevValue]);
+  }, [value, prevValue, showTrend]);
 
   const getStatusColor = () => {
     switch (status) {
@@ -52,7 +55,7 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
   };
 
   const getTrendColor = () => {
-    return trend === 'up' ? '#ff5252' : '#4caf50';
+    return trend === 'up' ? '#3f88f2' : '#ff5252';
   };
 
   return (
@@ -100,7 +103,7 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
               </Typography>
             )}
           </Typography>
-          {trend && (
+          {showTrend && trend && (
             <Box
               sx={{
                 display: 'flex',
@@ -123,7 +126,7 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
       {(subtitle || timestamp) && (
         <Box sx={{ mt: 'auto' }}>
           {subtitle && (
-            <Typography variant="body2\" color="text.secondary">
+            <Typography variant="body2" color="text.secondary">
               {subtitle}
             </Typography>
           )}

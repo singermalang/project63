@@ -84,6 +84,7 @@ const TemperatureHumiditySection = ({
                   status={getTemperatureStatus(data.nocTemperature.suhu)}
                   icon={<Thermometer size={20} />}
                   timestamp={formatTime(data.nocTemperature.waktu)}
+                  showTrend={true}
                 />
               )}
             </Box>
@@ -104,6 +105,7 @@ const TemperatureHumiditySection = ({
                   status={getTemperatureStatus(data.upsTemperature.suhu)}
                   icon={<Thermometer size={20} />}
                   timestamp={formatTime(data.upsTemperature.waktu)}
+                  showTrend={true}
                 />
               )}
             </Box>
@@ -124,6 +126,7 @@ const TemperatureHumiditySection = ({
                   status={getHumidityStatus(data.nocHumidity.kelembapan)}
                   icon={<Droplets size={20} />}
                   timestamp={formatTime(data.nocHumidity.waktu)}
+                  showTrend={true}
                 />
               )}
             </Box>
@@ -144,6 +147,7 @@ const TemperatureHumiditySection = ({
                   status={getHumidityStatus(data.upsHumidity.kelembapan)}
                   icon={<Droplets size={20} />}
                   timestamp={formatTime(data.upsHumidity.waktu)}
+                  showTrend={true}
                 />
               )}
             </Box>
