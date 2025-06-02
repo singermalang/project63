@@ -11,13 +11,16 @@ import {
   ToggleButtonGroup,
   ToggleButton,
   Tab,
-  Tabs
+  Tabs,
+  IconButton,
+  Tooltip
 } from '@mui/material';
-import { BarChart3, Calendar } from 'lucide-react';
+import { BarChart3, Calendar, Download } from 'lucide-react';
 import { DataType } from '../../types';
 import TemperatureChart from '../charts/TemperatureChart';
 import HumidityChart from '../charts/HumidityChart';
 import ElectricalChart from '../charts/ElectricalChart';
+import { format } from 'date-fns';
 
 interface HistoricalDataSectionProps {
   data: DataType;
@@ -42,6 +45,53 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
     setActiveTab(newValue);
   };
 
+  const exportToCSV = () => {
+    let csvContent = '';
+    let filename = '';
+
+    // Get current date for filename
+    const dateStr = format(new Date(), 'yyyy-MM-dd_HH-mm');
+
+    switch (activeTab) {
+      case 0: // Temperature
+        csvContent = 'Timestamp,NOC Temperature (°C),UPS Temperature (°C)\n';
+        data.historical.temperature?.noc.forEach((item, index) => {
+          csvContent += `${item.timestamp},${item.value},${data.historical.temperature?.ups[index]?.value || ''}\n`;
+        });
+        filename = `temperature_data_${dateStr}.csv`;
+        break;
+
+      case 1: // Humidity
+        csvContent = 'Timestamp,NOC Humidity (%),UPS Humidity (%)\n';
+        data.historical.humidity?.noc.forEach((item, index) => {
+          csvContent += `${item.timestamp},${item.value},${data.historical.humidity?.ups[index]?.value || ''}\n`;
+        });
+        filename = `humidity_data_${dateStr}.csv`;
+        break;
+
+      case 2: // Electrical
+        csvContent = 'Timestamp,Phase R (V),Phase S (V),Phase T (V)\n';
+        data.historical.electrical?.forEach(item => {
+          csvContent += `${item.timestamp},${item.phase_r},${item.phase_s},${item.phase_t}\n`;
+        });
+        filename = `electrical_data_${dateStr}.csv`;
+        break;
+    }
+
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (navigator.msSaveBlob) {
+      navigator.msSaveBlob(blob, filename);
+    } else {
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <Card 
       sx={{ 
@@ -61,33 +111,40 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
           </Box>
         } 
         action={
-          <ToggleButtonGroup
-            size="small"
-            value={timeRange}
-            exclusive
-            onChange={handleTimeRangeChange}
-            aria-label="time range"
-            sx={{ 
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              '.MuiToggleButton-root': {
-                color: 'text.secondary',
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  backgroundColor: 'rgba(63, 136, 242, 0.1)',
-                }
-              } 
-            }}
-          >
-            <ToggleButton value="24h" aria-label="24 hours">
-              24h
-            </ToggleButton>
-            <ToggleButton value="7d" aria-label="7 days">
-              7d
-            </ToggleButton>
-            <ToggleButton value="30d" aria-label="30 days">
-              30d
-            </ToggleButton>
-          </ToggleButtonGroup>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Tooltip title="Export to CSV">
+              <IconButton onClick={exportToCSV} size="small" sx={{ mr: 1 }}>
+                <Download size={20} />
+              </IconButton>
+            </Tooltip>
+            <ToggleButtonGroup
+              size="small"
+              value={timeRange}
+              exclusive
+              onChange={handleTimeRangeChange}
+              aria-label="time range"
+              sx={{ 
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                '.MuiToggleButton-root': {
+                  color: 'text.secondary',
+                  '&.Mui-selected': {
+                    color: 'primary.main',
+                    backgroundColor: 'rgba(63, 136, 242, 0.1)',
+                  }
+                } 
+              }}
+            >
+              <ToggleButton value="24h" aria-label="24 hours">
+                24h
+              </ToggleButton>
+              <ToggleButton value="7d" aria-label="7 days">
+                7d
+              </ToggleButton>
+              <ToggleButton value="30d" aria-label="30 days">
+                30d
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
         }
         sx={{ pb: 0 }}
       />
@@ -126,7 +183,7 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
       
       <CardContent>
         {loading ? (
-          <Skeleton variant="rectangular\" height={300} width="100%" />
+          <Skeleton variant="rectangular" height={300} width="100%" />
         ) : (
           <Box sx={{ mt: 1 }}>
             {/* Temperature Chart */}

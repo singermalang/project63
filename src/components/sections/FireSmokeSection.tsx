@@ -10,7 +10,8 @@ interface FireSmokeSectionProps {
 }
 
 const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
-  const isFireDetected = data.api_value === 0; // 0 = detected, 1024 = normal
+  // Updated fire detection threshold to 50
+  const isFireDetected = data.api_value < 50;
   const isSmokeDetected = data.asap_value === 0; // 0 = detected, 1 = normal
 
   const formatTime = (timeString: string) => {
@@ -64,7 +65,7 @@ const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
               }}
             >
               {loading ? (
-                <Skeleton variant="circular\" width={100} height={100} />
+                <Skeleton variant="circular" width={100} height={100} />
               ) : (
                 <>
                   <Flame
@@ -92,7 +93,7 @@ const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
                     large
                   />
                   <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>
-                    Value: {data.api_value} {data.api_value === 1024 ? '(Normal)' : '(Alert)'}
+                    Value: {data.api_value} {data.api_value >= 50 ? '(Normal)' : '(Alert)'}
                   </Typography>
                 </>
               )}
@@ -118,7 +119,7 @@ const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
               }}
             >
               {loading ? (
-                <Skeleton variant="circular\" width={100} height={100} />
+                <Skeleton variant="circular" width={100} height={100} />
               ) : (
                 <>
                   <Cloud
