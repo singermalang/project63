@@ -65,7 +65,7 @@ const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
               }}
             >
               {loading ? (
-                <Skeleton variant="circular" width={100} height={100} />
+                <Skeleton variant="circular\" width={100} height={100} />
               ) : (
                 <>
                   <Flame
@@ -119,7 +119,7 @@ const FireSmokeSection = ({ data, loading }: FireSmokeSectionProps) => {
               }}
             >
               {loading ? (
-                <Skeleton variant="circular" width={100} height={100} />
+                <Skeleton variant="circular\" width={100} height={100} />
               ) : (
                 <>
                   <Cloud
