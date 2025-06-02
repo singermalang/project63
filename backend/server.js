@@ -50,7 +50,9 @@ const createPoolWithRetry = async (retries = 5, delay = 5000) => {
         connectionLimit: 10,
         queueLimit: 0,
         enableKeepAlive: true,
-        keepAliveInitialDelay: 0
+        keepAliveInitialDelay: 0,
+        timezone: '+07:00', // Set timezone to WIB (UTC+7)
+        dateStrings: true // Return dates as strings in local format
       });
 
       // Test the connection
@@ -76,6 +78,9 @@ const createAccessLogsPool = async () => {
     user: 'root',
     password: 'bismillah123',
     database: 'rfid_access_control',
+    waitForConnections: true,
+    connectionLimit: 5,
+    queueLimit: 0,
     timezone: '+07:00', // Set timezone to WIB (UTC+7)
     dateStrings: true // Return dates as strings in local format
   });
@@ -88,6 +93,7 @@ Promise.all([createPoolWithRetry(), createAccessLogsPool()])
   .then(([mainPool, logsPool]) => {
     pool = mainPool;
     accessLogsPool = logsPool;
+    console.log('All database connections established successfully');
   })
   .catch(error => {
     console.error('Fatal database connection error:', error);
@@ -120,16 +126,26 @@ app.get('/api/health', async (req, res) => {
   });
 });
 
-// Access logs endpoint
+// Access logs endpoint with error handling and retries
 app.get('/api/access-logs', async (req, res) => {
-  try {
-    const [rows] = await accessLogsPool.query(
-      'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
-    );
-    res.json(rows);
-  } catch (error) {
-    console.error('Error fetching access logs:', error);
-    res.status(500).json({ error: 'Failed to fetch access logs' });
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      const [rows] = await accessLogsPool.query(
+        'SELECT user_id, access_time, access_granted FROM access_logs ORDER BY access_time DESC LIMIT 5'
+      );
+      return res.json(rows);
+    } catch (error) {
+      console.error(`Error fetching access logs (attempt ${4 - retries}):`, error);
+      retries--;
+      if (retries === 0) {
+        return res.status(500).json({ 
+          error: 'Failed to fetch access logs',
+          details: error.message 
+        });
+      }
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
 });
 

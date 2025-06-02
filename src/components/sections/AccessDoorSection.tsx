@@ -20,15 +20,24 @@ const AccessDoorSection = () => {
     const fetchAccessLogs = async () => {
       try {
         setError(null);
-        const baseUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://localhost:3000';
-        const response = await fetch(`${baseUrl}/api/access-logs`);
+        const baseUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://10.10.1.25:3000';
+        const response = await fetch(`${baseUrl}/api/access-logs`, {
+          headers: {
+            'Accept': 'application/json',
+            'Cache-Control': 'no-cache'
+          }
+        });
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         
         const data = await response.json();
-        setAccessLogs(data);
+        if (Array.isArray(data)) {
+          setAccessLogs(data);
+        } else {
+          throw new Error('Invalid data format received');
+        }
         setLoading(false);
       } catch (error) {
         console.error('Error fetching access logs:', error);
@@ -41,15 +50,18 @@ const AccessDoorSection = () => {
       fetchAccessLogs();
       
       // Listen for real-time updates
-      socket.on('access_logs', (newLogs) => {
-        setAccessLogs(newLogs);
+      socket?.on('access_logs', (newLogs) => {
+        if (Array.isArray(newLogs)) {
+          setAccessLogs(newLogs);
+          setError(null);
+        }
       });
 
       // Fetch every 30 seconds as backup
       const interval = setInterval(fetchAccessLogs, 30000);
 
       return () => {
-        socket.off('access_logs');
+        socket?.off('access_logs');
         clearInterval(interval);
       };
     }
