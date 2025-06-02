@@ -1,5 +1,6 @@
 import { Box, Typography, Paper } from '@mui/material';
-import { ReactNode } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
+import { TrendingUp, TrendingDown } from 'lucide-react';
 
 interface ValueDisplayProps {
   value: string | number;
@@ -11,6 +12,21 @@ interface ValueDisplayProps {
 }
 
 const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueDisplayProps) => {
+  const [prevValue, setPrevValue] = useState<number>(typeof value === 'number' ? value : 0);
+  const [trend, setTrend] = useState<'up' | 'down' | null>(null);
+
+  useEffect(() => {
+    const numValue = typeof value === 'number' ? value : parseFloat(value);
+    if (numValue !== prevValue) {
+      setTrend(numValue > prevValue ? 'up' : 'down');
+      setPrevValue(numValue);
+
+      // Reset trend after animation
+      const timer = setTimeout(() => setTrend(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [value, prevValue]);
+
   const getStatusColor = () => {
     switch (status) {
       case 'critical': return '#ff5252';
@@ -35,6 +51,10 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
     }
   };
 
+  const getTrendColor = () => {
+    return trend === 'up' ? '#ff5252' : '#4caf50';
+  };
+
   return (
     <Paper
       elevation={0}
@@ -50,42 +70,60 @@ const ValueDisplay = ({ value, unit, status, icon, subtitle, timestamp }: ValueD
         flexDirection: 'column',
       }}
     >
-      {/* Value */}
-      <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 1 }}>
+      {/* Value with Trend Indicator */}
+      <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
         {icon && <Box sx={{ mr: 1, color: getStatusColor() }}>{icon}</Box>}
-        <Typography 
-          variant="h4" 
-          component="div"
-          sx={{ 
-            fontWeight: 600,
-            color: getStatusColor(),
-            lineHeight: 1.2,
-          }}
-          className="value-change"
-        >
-          {value}
-          {unit && (
-            <Typography 
-              component="span" 
-              sx={{ 
-                fontSize: '1rem', 
-                verticalAlign: 'middle',
-                ml: 0.5,
-                color: getStatusColor(),
-                opacity: 0.7
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography 
+            variant="h4" 
+            component="div"
+            sx={{ 
+              fontWeight: 600,
+              color: getStatusColor(),
+              lineHeight: 1.2,
+            }}
+            className="value-change"
+          >
+            {value}
+            {unit && (
+              <Typography 
+                component="span" 
+                sx={{ 
+                  fontSize: '1rem', 
+                  verticalAlign: 'middle',
+                  ml: 0.5,
+                  color: getStatusColor(),
+                  opacity: 0.7
+                }}
+              >
+                {unit}
+              </Typography>
+            )}
+          </Typography>
+          {trend && (
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                color: getTrendColor(),
+                animation: 'fadeInOut 3s ease',
               }}
             >
-              {unit}
-            </Typography>
+              {trend === 'up' ? (
+                <TrendingUp size={24} strokeWidth={2.5} />
+              ) : (
+                <TrendingDown size={24} strokeWidth={2.5} />
+              )}
+            </Box>
           )}
-        </Typography>
+        </Box>
       </Box>
 
       {/* Subtitle or timestamp */}
       {(subtitle || timestamp) && (
         <Box sx={{ mt: 'auto' }}>
           {subtitle && (
-            <Typography variant="body2\" color="text.secondary">
+            <Typography variant="body2" color="text.secondary">
               {subtitle}
             </Typography>
           )}

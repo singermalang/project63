@@ -13,14 +13,19 @@ import {
   Tab,
   Tabs,
   IconButton,
-  Tooltip
+  Tooltip,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { BarChart3, Calendar, Download } from 'lucide-react';
+import { BarChart3, Calendar, Download, FileSpreadsheet } from 'lucide-react';
 import { DataType } from '../../types';
 import TemperatureChart from '../charts/TemperatureChart';
 import HumidityChart from '../charts/HumidityChart';
 import ElectricalChart from '../charts/ElectricalChart';
 import { format } from 'date-fns';
+import { useSocket } from '../../contexts/SocketContext';
 
 interface HistoricalDataSectionProps {
   data: DataType;
@@ -31,6 +36,8 @@ interface HistoricalDataSectionProps {
 const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectionProps) => {
   const [timeRange, setTimeRange] = useState('24h');
   const [activeTab, setActiveTab] = useState(0);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const { socket } = useSocket();
 
   const handleTimeRangeChange = (
     _: React.MouseEvent<HTMLElement>,
@@ -45,51 +52,41 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
     setActiveTab(newValue);
   };
 
-  const exportToCSV = () => {
-    let csvContent = '';
-    let filename = '';
+  const handleExportClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
 
-    // Get current date for filename
-    const dateStr = format(new Date(), 'yyyy-MM-dd_HH-mm');
+  const handleExportClose = () => {
+    setAnchorEl(null);
+  };
 
-    switch (activeTab) {
-      case 0: // Temperature
-        csvContent = 'Timestamp,NOC Temperature (°C),UPS Temperature (°C)\n';
-        data.historical.temperature?.noc.forEach((item, index) => {
-          csvContent += `${item.timestamp},${item.value},${data.historical.temperature?.ups[index]?.value || ''}\n`;
-        });
-        filename = `temperature_data_${dateStr}.csv`;
-        break;
+  const exportToXLS = async (table: string) => {
+    try {
+      const baseUrl = import.meta.env.VITE_SOCKET_SERVER || 'http://10.10.1.25:3000';
+      const response = await fetch(`${baseUrl}/api/export/${table}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/vnd.ms-excel',
+        },
+        credentials: 'include'
+      });
 
-      case 1: // Humidity
-        csvContent = 'Timestamp,NOC Humidity (%),UPS Humidity (%)\n';
-        data.historical.humidity?.noc.forEach((item, index) => {
-          csvContent += `${item.timestamp},${item.value},${data.historical.humidity?.ups[index]?.value || ''}\n`;
-        });
-        filename = `humidity_data_${dateStr}.csv`;
-        break;
+      if (!response.ok) throw new Error('Export failed');
 
-      case 2: // Electrical
-        csvContent = 'Timestamp,Phase R (V),Phase S (V),Phase T (V)\n';
-        data.historical.electrical?.forEach(item => {
-          csvContent += `${item.timestamp},${item.phase_r},${item.phase_s},${item.phase_t}\n`;
-        });
-        filename = `electrical_data_${dateStr}.csv`;
-        break;
-    }
-
-    // Create and trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    if (navigator.msSaveBlob) {
-      navigator.msSaveBlob(blob, filename);
-    } else {
-      link.href = URL.createObjectURL(blob);
-      link.setAttribute('download', filename);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${table}_export_${format(new Date(), 'yyyy-MM-dd_HH-mm')}.xls`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      // Handle error (show notification, etc.)
     }
+    handleExportClose();
   };
 
   return (
@@ -112,11 +109,49 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
         } 
         action={
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Tooltip title="Export to CSV">
-              <IconButton onClick={exportToCSV} size="small" sx={{ mr: 1 }}>
-                <Download size={20} />
+            <Tooltip title="Export Data">
+              <IconButton onClick={handleExportClick} size="small" sx={{ mr: 1 }}>
+                <FileSpreadsheet size={20} />
               </IconButton>
             </Tooltip>
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleExportClose}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  minWidth: 200,
+                  backdropFilter: 'blur(10px)',
+                  bgcolor: 'rgba(26, 26, 46, 0.9)',
+                }
+              }}
+            >
+              <MenuItem onClick={() => exportToXLS('sensor_data')}>
+                <ListItemIcon>
+                  <FileSpreadsheet size={18} />
+                </ListItemIcon>
+                <ListItemText>NOC Sensor Data</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => exportToXLS('sensor_data1')}>
+                <ListItemIcon>
+                  <FileSpreadsheet size={18} />
+                </ListItemIcon>
+                <ListItemText>UPS Sensor Data</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => exportToXLS('listrik_noc')}>
+                <ListItemIcon>
+                  <FileSpreadsheet size={18} />
+                </ListItemIcon>
+                <ListItemText>Electrical Data</ListItemText>
+              </MenuItem>
+              <MenuItem onClick={() => exportToXLS('api_asap_data')}>
+                <ListItemIcon>
+                  <FileSpreadsheet size={18} />
+                </ListItemIcon>
+                <ListItemText>Fire & Smoke Data</ListItemText>
+              </MenuItem>
+            </Menu>
             <ToggleButtonGroup
               size="small"
               value={timeRange}
@@ -183,10 +218,9 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
       
       <CardContent>
         {loading ? (
-          <Skeleton variant="rectangular\" height={300} width="100%" />
+          <Skeleton variant="rectangular" height={300} width="100%" />
         ) : (
           <Box sx={{ mt: 1 }}>
-            {/* Temperature Chart */}
             {activeTab === 0 && (
               <TemperatureChart 
                 nocData={data.historical.temperature?.noc || []} 
@@ -195,7 +229,6 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
               />
             )}
             
-            {/* Humidity Chart */}
             {activeTab === 1 && (
               <HumidityChart 
                 nocData={data.historical.humidity?.noc || []} 
@@ -204,7 +237,6 @@ const HistoricalDataSection = ({ data, loading, isMobile }: HistoricalDataSectio
               />
             )}
             
-            {/* Electrical Chart */}
             {activeTab === 2 && (
               <ElectricalChart 
                 data={data.historical.electrical || []} 
